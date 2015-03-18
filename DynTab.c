@@ -30,15 +30,16 @@ boolean DynTab_add(DynTab * tab, void * element)
 	
 	if( tab->size == tab->capacity )
 	{
-		void ** tmp = malloc( sizeof( *tmp ) * tab->capacity * 2 );
+		void * tmp = realloc(tab->tab, tab->capacity*2*sizeof(void *));
 		if( tmp == NULL )
 		{
 			return FALSE;
 		}
-
-		memcpy( tmp, tab->tab, tab->size );
 		tab->tab = tmp;
+		tab->capacity *= 2;
 	}
+
+	assert( tab->size < tab->capacity );
 	
 	tab->tab[tab->size] = element;
 	tab->size++;
