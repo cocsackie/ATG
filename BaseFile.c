@@ -13,53 +13,16 @@ struct Trie
 
 typedef struct Trie Trie;
 
-static Trie * trie;
 static DynTab * dictionary;
-static char word[512];
-
-static boolean insertIntoTrie(const char * str)
-{
-	Trie * t = trie;
-	while( *str != '\0' )
-	{
-		if( t->next[*str] == NULL )
-		{
-			t->next[*str] = malloc( sizeof( Trie ) );
-			if( t->next[*str] == NULL )
-			{
-				return FALSE;
-			}
-			t->next[*str]->cnt = 0;
-		}
-		t = t->next[*str];
-		str++;
-	}
-	t->cnt++;
-}
+static DynTab * dictWithMultipleEntries;
+static char word[2048];
 
 static char * copyString(const char * str)
 {
 	char * copyStr = malloc( strlen( str ) + 1 );
 	strcpy( copyStr, str );
-	return copyStr;
-}
 
-static void traverseTrie(Trie * trie, int level)
-{
-	int i;
-	word[level] = '\0';
-	if( trie->cnt != 0 )
-	{
-		DynTab_add(dictionary, copyString(word)); 
-	}
-	for( i = 0; i < 256; i++ )
-	{
-		if( trie->next[i] != NULL )
-		{
-			word[level] = (char) i;
-			traverseTrie(trie->next[i], level+1);
-		}
-	}
+	return copyStr;
 }
 
 static boolean readFile(const char * fileName)
@@ -69,19 +32,62 @@ static boolean readFile(const char * fileName)
 
 	while( (r = fscanf(file, "%s", word)) != EOF )
 	{
-		insertIntoTrie(word);
-	}	
+		boolean added = DynTab_add(dictWithMultipleEntries, copyString(word));
+	}
+	
+	fclose(file);	
+}
 
+int cmpstr(const void *a, const void * b)
+{
+	const char *ap = *(const char **)a;
+	const char *bp = *(const char **)b;
+
+	return strcmp(ap, bp);
 }
 
 struct IntermediateData * BaseFile_loadBaseFilesToIntermediateData(DynTab * fileNames)
 {
 	int i;
 	dictionary = DynTab_create();
-	trie = malloc( sizeof( Trie ) );	
+	dictWithMultipleEntries = DynTab_create();
 	for( i = 0; i < fileNames->size; i++ )
 	{
 		readFile( (char *)fileNames->tab[i] );
-	} 
-	traverseTrie(trie, 0);
+	}
+
+	for( i = 0; i < dictWithMultipleEntries->size; i++ )
+	{
+		if( dictWithMultipleEntries->tab[i] == NULL )
+		{
+			printf("Index: %d", i );
+			abort();
+		}
+	}
+	
+	qsort( dictWithMultipleEntries->tab, dictWithMultipleEntries->size, sizeof(dictWithMultipleEntries->tab[0]), cmpstr );
+	
+	for( i = 0; i < dictWithMultipleEntries->size; i++ )
+	{
+		int start = i;
+		DynTab_add(dictionary, dictWithMultipleEntries->tab[i]);
+		i++;
+		while(i < dictWithMultipleEntries->size)
+		{
+			if(strcmp(dictWithMultipleEntries->tab[i-1], dictWithMultipleEntries->tab[i]) != 0 )
+			{
+				break;
+			}
+			else
+			{
+				free(dictWithMultipleEntries->tab[i]);
+			}
+			i++;
+		}
+	}
+
+	printf("Wczytano %d slow!\n", dictionary->size);
+
+	free(dictWithMultipleEntries);
+
 }
