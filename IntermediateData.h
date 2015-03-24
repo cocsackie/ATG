@@ -18,6 +18,12 @@ struct GramTrieEntry
 
 typedef struct GramTrieEntry GramTrieEntry;
 
+struct GramTrieLeaf
+{
+	int word;
+	int occurence;
+};
+
 struct IntermediateData
 {
 	DynTab * dictionary;
@@ -35,5 +41,7 @@ struct DictionaryEntry
 typedef struct DictionaryEntry DictionaryEntry;
 
 DictionaryEntry * DictionaryEntry_create(char * word, int occurences);
+
+int dictionaryWordCompare(const void * a, const void * b);
 
 #endif

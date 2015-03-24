@@ -3,6 +3,8 @@
 
 #include "TypesAndDefs.h"
 
+typedef int (*DynTabComparator)(const void *, const void *);
+
 struct DynTab
 {
 	size_t size;
@@ -15,6 +17,6 @@ typedef struct DynTab DynTab;
 DynTab * DynTab_create();
 boolean DynTab_add(DynTab * tab, void * element);
 
-int DynTab_binsearch(DynTab * tab, void * element, int (*comp)(const void *, const void*));
+int DynTab_binsearch(DynTab * tab, void * element, DynTabComparator comparator);
 
 #endif

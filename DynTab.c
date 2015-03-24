@@ -51,7 +51,7 @@ static calcMiddle(int start, int end)
 	return (start+end)/2;
 }
 
-int DynTab_binsearch(DynTab * tab, void * element, int (*comp)(const void *, const void*))
+int DynTab_binsearch(DynTab * tab, void * element, DynTabComparator comparator)
 {
 
 	int start = 0;
@@ -60,7 +60,7 @@ int DynTab_binsearch(DynTab * tab, void * element, int (*comp)(const void *, con
 	while( start < end )
 	{
 		int middle = calcMiddle(start,end); 
-		int result = comp(element, tab->tab[middle]);
+		int result = comparator(element, tab->tab[middle]);
 
 		if( result == 0 )
 		{
@@ -76,7 +76,7 @@ int DynTab_binsearch(DynTab * tab, void * element, int (*comp)(const void *, con
 		}
 	}
 
-	if( comp(element, tab->tab[start]) == 0 )
+	if( comparator(element, tab->tab[start]) == 0 )
 	{
 		return start;
 	}

@@ -13,3 +13,11 @@ DictionaryEntry * DictionaryEntry_create(char * word, int occurences)
 
 	return dictEntry;
 }
+
+int dictionaryWordCompare(const void * a, const void * b)
+{
+	char * pa = (char *) a;
+	DictionaryEntry * pb = (DictionaryEntry*) b;
+
+	return strcmp(a, pb->word);
+}
