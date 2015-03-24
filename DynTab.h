@@ -15,4 +15,6 @@ typedef struct DynTab DynTab;
 DynTab * DynTab_create();
 boolean DynTab_add(DynTab * tab, void * element);
 
+int DynTab_binsearch(DynTab * tab, void * element, int (*comp)(const void *, const void*));
+
 #endif

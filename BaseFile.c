@@ -2,19 +2,13 @@
 #include<stdlib.h>
 #include<string.h>
 
-#include"TypesAndDefs.h"
-#include"BaseFile.h"
+#include "TypesAndDefs.h"
+#include "BaseFile.h"
+#include "IntermediateData.h"
+#include "Tree.h"
 
-struct Trie
-{
-	struct Trie * next[256];
-	int cnt;
-};
-
-typedef struct Trie Trie;
-
+static Tree * tree;
 static DynTab * dictionary;
-static DynTab * dictWithMultipleEntries;
 static char word[2048];
 
 static char * copyString(const char * str)
@@ -25,69 +19,73 @@ static char * copyString(const char * str)
 	return copyStr;
 }
 
-static boolean readFile(const char * fileName)
-{
+static boolean addAllWordsFromFileToTree(const char * fileName)
+{	
 	FILE * file = fopen(fileName, "r");
 	int r;
 
 	while( (r = fscanf(file, "%s", word)) != EOF )
 	{
-		boolean added = DynTab_add(dictWithMultipleEntries, copyString(word));
+		boolean success = Tree_insert(tree, copyString(word));
+
+		if( success == FALSE )
+		{
+			fclose(file);
+			return FALSE;
+		}
 	}
 	
-	fclose(file);	
+	fclose(file);
+	return TRUE;
 }
 
-int cmpstr(const void *a, const void * b)
+static void traverseHandler(void * value)
 {
-	const char *ap = *(const char **)a;
-	const char *bp = *(const char **)b;
-
-	return strcmp(ap, bp);
+	char * str = (char *) value;
+	
+	if( dictionary->size == 0 )
+	{
+		DictionaryEntry * dictEntry = DictionaryEntry_create(copyString(str), 1);
+		DynTab_add(dictionary, dictEntry);
+	}
+	else
+	{
+		if( strcmp(((DictionaryEntry*)dictionary->tab[dictionary->size-1])->word, str) )
+		{
+			DictionaryEntry * dictEntry = DictionaryEntry_create(copyString(str), 1);
+			DynTab_add(dictionary, dictEntry);
+		}
+		else
+		{
+			((DictionaryEntry*)dictionary->tab[dictionary->size-1])->occurences++;
+		}
+	}
 }
 
-struct IntermediateData * BaseFile_loadBaseFilesToIntermediateData(DynTab * fileNames)
+static boolean createDictionaryFromFiles(DynTab * fileNames)
 {
 	int i;
+	tree = Tree_create( (TreeComparator) strcmp);
 	dictionary = DynTab_create();
-	dictWithMultipleEntries = DynTab_create();
-	for( i = 0; i < fileNames->size; i++ )
-	{
-		readFile( (char *)fileNames->tab[i] );
-	}
 
-	for( i = 0; i < dictWithMultipleEntries->size; i++ )
+	for(i = 0; i < fileNames->size; i++)
 	{
-		if( dictWithMultipleEntries->tab[i] == NULL )
+		boolean success = addAllWordsFromFileToTree(fileNames->tab[i]);
+		
+		if( success == FALSE )
 		{
-			printf("Index: %d", i );
-			abort();
-		}
-	}
-	
-	qsort( dictWithMultipleEntries->tab, dictWithMultipleEntries->size, sizeof(dictWithMultipleEntries->tab[0]), cmpstr );
-	
-	for( i = 0; i < dictWithMultipleEntries->size; i++ )
-	{
-		int start = i;
-		DynTab_add(dictionary, dictWithMultipleEntries->tab[i]);
-		i++;
-		while(i < dictWithMultipleEntries->size)
-		{
-			if(strcmp(dictWithMultipleEntries->tab[i-1], dictWithMultipleEntries->tab[i]) != 0 )
-			{
-				break;
-			}
-			else
-			{
-				free(dictWithMultipleEntries->tab[i]);
-			}
-			i++;
+			Tree_destroy( tree, (TreeNodeDestructor) free );
+			return FALSE;
 		}
 	}
 
-	printf("Wczytano %d slow!\n", dictionary->size);
+	Tree_traverse( tree, (TreeTraverseHandler) traverseHandler );
+	Tree_destroy( tree, (TreeNodeDestructor) free );
+	return TRUE;
+}
 
-	free(dictWithMultipleEntries);
-
+IntermediateData * BaseFile_loadBaseFilesToIntermediateData(DynTab * fileNames, int gramType)
+{
+	boolean success = createDictionaryFromFiles(fileNames);
+	createGramTreeFromFilesAndDictionary(fileNames, gramType);	
 }

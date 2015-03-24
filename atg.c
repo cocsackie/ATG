@@ -239,7 +239,7 @@ int main(int argc, char ** argv)
 		//TODO: paragraphsValue too small
 	}
 
-	BaseFile_loadBaseFilesToIntermediateData( baseFileNames );
+	BaseFile_loadBaseFilesToIntermediateData( baseFileNames, gramTypeValue );
 	
 	#ifndef NDEBUG
 	printf("Pliki bazowe:\n");

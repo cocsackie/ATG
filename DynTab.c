@@ -45,3 +45,41 @@ boolean DynTab_add(DynTab * tab, void * element)
 	tab->size++;
 	return TRUE;
 }
+
+static calcMiddle(int start, int end)
+{
+	return (start+end)/2;
+}
+
+int DynTab_binsearch(DynTab * tab, void * element, int (*comp)(const void *, const void*))
+{
+
+	int start = 0;
+	int end = tab->size-1;
+
+	while( start < end )
+	{
+		int middle = calcMiddle(start,end); 
+		int result = comp(element, tab->tab[middle]);
+
+		if( result == 0 )
+		{
+			return middle;
+		}
+		else if( result > 0 )
+		{
+			start = middle+1;	
+		}
+		else if( result < 0 )
+		{
+			end = middle-1;
+		}
+	}
+
+	if( comp(element, tab->tab[start]) == 0 )
+	{
+		return start;
+	}
+
+	return -1;
+}

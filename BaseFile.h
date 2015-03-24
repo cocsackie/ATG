@@ -2,9 +2,8 @@
 #define __BASEFILE_H__
 
 #include "DynTab.h"
+#include "IntermediateData.h"
 
-struct IntermediateData{};
-
-struct IntermediateData * BaseFile_loadBaseFilesToIntermediateData(DynTab * fileNames);
+IntermediateData * BaseFile_loadBaseFilesToIntermediateData(DynTab * fileNames, int gramType);
 
 #endif
