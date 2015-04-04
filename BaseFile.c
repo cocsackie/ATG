@@ -13,7 +13,7 @@ static char word[2048];
 
 struct GramTreeEntry
 {
-	Tree suffixes;
+	Tree * tree;
 	int word;
 };
 
@@ -100,6 +100,32 @@ static boolean createDictionaryFromFiles(DynTab * fileNames)
 	return TRUE;
 }
 
+static int gtecmp( const void * a, const void * b )
+{
+	GramTreeEntry * pa = (GramTreeEntry*) a;
+	GramTreeEntry * pb = (GramTreeEntry*) b;
+	
+	if(pa->word == pb->word)
+	{
+		return 0;
+	}
+
+	return pa->word < pb->word ? -1 : 1;
+}
+
+static int tlcmp( const void * a, const void * b )
+{
+	GramTreeLeaf * pa = (GramTreeLeaf*) a;
+	GramTreeLeaf * pb = (GramTreeLeaf*) b;
+
+	if(pa->word == pb->word)
+	{
+		return 0;
+	}
+
+	return pa->word < pb->word ? -1 : 1;
+}
+
 static boolean createGramTreeFromFileAndDictionary(const char * fileName, int gramType)
 {
 	Tree * currTree;
@@ -124,7 +150,8 @@ static boolean createGramTreeFromFileAndDictionary(const char * fileName, int gr
 			DynTab_add(lastWords, dictionary->tab[wordIndex]);
 		}
 		else
-		{
+		{	
+			GramTreeEntry * entry;
 			for( i = 0; i < lastWords->size-1; i-- )
 			{
 				lastWords->tab[i] = lastWords->tab[i+1];
@@ -134,21 +161,45 @@ static boolean createGramTreeFromFileAndDictionary(const char * fileName, int gr
 
 			for( i = 0; i < gramType-1; i++ )
 			{
+				entry = Tree_find(currTree, lastWords->tab[i], gtecmp);
+				
+				if( entry != NULL )
+				{
+					currTree = entry->tree;
+				}
+				else
+				{
+					entry = malloc( sizeof( GramTreeEntry ) );
+					
+					if( entry == NULL )
+					{
+						//TODO: fail
+						fclose(file);
+						return FALSE;
+					}
+					
+					entry->word = (int) lastWords->tab[i];
+					if( i < gramType-2 )
+					{
+						entry->tree = Tree_create( (TreeComparator) gtecmp );
+					}
+					else
+					{
+						entry->tree = Tree_create( (TreeComparator) tlcmp );
+					}
+
+					Tree_insert(currTree, entry); 
+					currTree = entry->tree;
+				}
 			}
+			
+			
 		}
 	}
 	
 	fclose(file);
 	return TRUE;
 }
-
-static int gtecmp( const void * a, const void * b )
-{
-	GramTreeEntry * pa = (GramTreeEntry*) a;
-	GramTreeEntry * pb = (GramTreeEntry*) b;
-
-	return pa->word == pb->word ? 0 : pa->word < pb->word;
-} 
 
 static boolean createGramTreeFromFilesAndDictionary(DynTab * fileNames, int gramType)
 {
@@ -175,5 +226,5 @@ static boolean createGramTreeFromFilesAndDictionary(DynTab * fileNames, int gram
 IntermediateData * BaseFile_loadBaseFilesToIntermediateData(DynTab * fileNames, int gramType)
 {
 	boolean success = createDictionaryFromFiles(fileNames);
-	//createGramTreeFromFilesAndDictionary(fileNames, gramType);	
+	createGramTreeFromFilesAndDictionary(fileNames, gramType);	
 }

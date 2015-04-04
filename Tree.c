@@ -9,6 +9,7 @@ Tree * Tree_create(TreeComparator cmp)
 
 	if( tree != NULL )
 	{
+		tree->root = NULL;
 		tree->cmp = cmp;	
 	}
 
@@ -119,4 +120,34 @@ static void traverse(Node * node, TreeTraverseHandler handler)
 void Tree_traverse(Tree * tree, TreeTraverseHandler handler)
 {
 	traverse(tree->root, handler);	
+}
+
+static void * find(Node * node, void * value, TreeComparator comparator)
+{
+	int retVal;
+
+	while( node != NULL )
+	{
+		retVal = comparator(value, node->value);
+
+		if( retVal < 0 )
+		{
+			node = node->left;
+		}
+		else if( retVal > 0 )
+		{
+			node = node->right;
+		}
+		else
+		{
+			return node->value;
+		}
+	}
+
+	return NULL;
+}
+
+void * Tree_find(Tree * tree, void * value, TreeComparator comparator)
+{
+	return find(tree->root, value, comparator);
 }

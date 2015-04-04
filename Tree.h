@@ -30,5 +30,6 @@ Tree * Tree_create(TreeComparator cmp);
 void Tree_destroy(Tree * tree, TreeNodeDestructor destructor);
 boolean Tree_insert(Tree * tree, void * value);
 void Tree_traverse(Tree * tree, TreeTraverseHandler handler);
+void * Tree_find(Tree * tree, void * value, TreeComparator comparator);
 
 #endif
