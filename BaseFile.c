@@ -10,6 +10,7 @@
 static Tree * tree;
 static DynTab * dictionary;
 static char word[2048];
+static IntermediateData * data;
 
 struct GramTreeEntry
 {
@@ -21,7 +22,7 @@ typedef struct GramTreeEntry GramTreeEntry;
 
 struct GramTreeLeaf
 {
-	int word;
+	GramTreeEntry entry;
 	int occurence;
 };
 
@@ -113,19 +114,6 @@ static int gtecmp( const void * a, const void * b )
 	return pa->word < pb->word ? -1 : 1;
 }
 
-static int tlcmp( const void * a, const void * b )
-{
-	GramTreeLeaf * pa = (GramTreeLeaf*) a;
-	GramTreeLeaf * pb = (GramTreeLeaf*) b;
-
-	if(pa->word == pb->word)
-	{
-		return 0;
-	}
-
-	return pa->word < pb->word ? -1 : 1;
-}
-
 static boolean createGramTreeFromFileAndDictionary(const char * fileName, int gramType)
 {
 	Tree * currTree;
@@ -152,6 +140,7 @@ static boolean createGramTreeFromFileAndDictionary(const char * fileName, int gr
 		else
 		{	
 			GramTreeEntry * entry;
+			GramTreeLeaf * leaf;
 			for( i = 0; i < lastWords->size-1; i-- )
 			{
 				lastWords->tab[i] = lastWords->tab[i+1];
@@ -179,21 +168,30 @@ static boolean createGramTreeFromFileAndDictionary(const char * fileName, int gr
 					}
 					
 					entry->word = (int) lastWords->tab[i];
-					if( i < gramType-2 )
-					{
-						entry->tree = Tree_create( (TreeComparator) gtecmp );
-					}
-					else
-					{
-						entry->tree = Tree_create( (TreeComparator) tlcmp );
-					}
-
+					entry->tree = Tree_create( (TreeComparator) gtecmp );
 					Tree_insert(currTree, entry); 
 					currTree = entry->tree;
 				}
 			}
-			
-			
+
+			leaf = Tree_find(currTree, lastWords->tab[gramType-1], gtecmp);
+			if( leaf != NULL )
+			{
+				leaf->occurence++;
+			}			
+			else
+			{
+				leaf = malloc( sizeof( GramTreeLeaf ) );
+				
+				if( leaf == NULL )
+				{
+					//TODO: fail
+				}
+
+				leaf->entry.word = (int) lastWords->tab[gramType-1];
+				leaf->entry.tree = NULL;
+				Tree_insert(currTree, leaf);
+			}
 		}
 	}
 	
@@ -201,9 +199,65 @@ static boolean createGramTreeFromFileAndDictionary(const char * fileName, int gr
 	return TRUE;
 }
 
+static int gType;
+static DynTab * stackTree;
+static DynTab * stackTable;
+static DynTab * handlerReturnTable;
+static int depth = 0;
+
+static void treeToTabTraverseHandler(void * value)
+{
+	if( depth != gType-1 )
+	{
+		GramTreeEntry * entry = (GramTreeEntry*) value;
+	
+		GramTrieEntry * trieEntry = malloc( sizeof( GramTrieEntry ) );
+
+		if( trieEntry == NULL )
+		{
+			exit(0);
+		}
+
+		trieEntry->word = entry->word;
+		trieEntry->suffixes = DynTab_create();
+
+		if( trieEntry->suffixes == NULL )
+		{
+			exit(0);
+		}
+
+		DynTab_add( stackTable->tab[stackTable->size-1], trieEntry);
+	
+		depth++;
+		DynTab_add( stackTree, entry->tree );
+		DynTab_add( stackTable, trieEntry->suffixes );
+		Tree_traverse( stackTree->tab[stackTree->size-1], (TreeTraverseHandler) treeToTabTraverseHandler );
+		stackTree->size--;
+		stackTable->size--;
+		depth--;
+	} else {
+		GramTreeLeaf * leaf = (GramTreeLeaf*) value;
+		GramTrieLeaf * trieLeaf = malloc( sizeof( GramTrieLeaf ) );
+
+		if( trieLeaf == NULL )
+		{
+			exit(0);
+		}
+	
+		trieLeaf->word = leaf->entry.word;
+		trieLeaf->occurence = leaf->occurence;
+
+		DynTab_add(stackTable->tab[stackTable->size-1], trieLeaf);
+
+		return;
+	}
+}
+
 static boolean createGramTreeFromFilesAndDictionary(DynTab * fileNames, int gramType)
 {
 	int i;
+	Tree * currTree;
+	GramTrieRoot * gramTrieRoot;
 	tree = Tree_create( (TreeComparator) gtecmp );
 
 	for(i = 0; i < fileNames->size; i++)
@@ -217,7 +271,42 @@ static boolean createGramTreeFromFilesAndDictionary(DynTab * fileNames, int gram
 		}
 	}
 
-	//create intermediate data
+	
+	
+	data = malloc( sizeof( IntermediateData ) );
+	gramTrieRoot = malloc( sizeof( GramTrieRoot ) );
+
+	if( data == NULL || gramTrieRoot == NULL )
+	{
+		//TODO: exit
+		return FALSE;
+	}
+	
+	currTree = tree;
+
+	stackTree = DynTab_create();
+	stackTable = DynTab_create();
+	handlerReturnTable = DynTab_create();
+	gType = gramType;
+	DynTab_add(stackTable, handlerReturnTable);
+
+	for( i = 0; i < gramType-1; i++ )
+	{	
+		if( handlerReturnTable == NULL )
+		{
+			return FALSE;
+			//exit();
+		}
+
+		Tree_traverse(currTree, (TreeTraverseHandler) treeToTabTraverseHandler);
+	}
+
+	data->dictionary = dictionary;
+	data->gramTrieRoot = gramTrieRoot;
+	data->gramType = gramType;
+
+	gramTrieRoot->suffixes = handlerReturnTable;
+	
 	//TODO:destroy tree
 
 	return TRUE;
@@ -226,5 +315,6 @@ static boolean createGramTreeFromFilesAndDictionary(DynTab * fileNames, int gram
 IntermediateData * BaseFile_loadBaseFilesToIntermediateData(DynTab * fileNames, int gramType)
 {
 	boolean success = createDictionaryFromFiles(fileNames);
-	createGramTreeFromFilesAndDictionary(fileNames, gramType);	
+	createGramTreeFromFilesAndDictionary(fileNames, gramType);
+	return data;	
 }

@@ -7,6 +7,7 @@
 #include "TypesAndDefs.h"
 #include "DynTab.h"
 #include "BaseFile.h"
+#include "Generator.h"
 
 void InformAboutRequiredArgument()
 {
@@ -58,6 +59,7 @@ int parseInt(const char * str, int * value)
 }
 
 static DynTab * baseFileNames;
+static IntermediateData * intermediateData;
 
 static void cleanup()
 {
@@ -239,9 +241,26 @@ int main(int argc, char ** argv)
 		//TODO: paragraphsValue too small
 	}
 
-	BaseFile_loadBaseFilesToIntermediateData( baseFileNames, gramTypeValue );
+	if( baseFileNames->size != 0 )
+	{	
+		intermediateData = BaseFile_loadBaseFilesToIntermediateData( baseFileNames, gramTypeValue );
+		if( intermediateFileName != NULL )
+		{
+			//TODO: save
+		}
+	}
+	else
+	{
+		intermediateData = NULL; //TODO: read
+	}
+
+	//TODO: statistics
+
+	Generator_generate(intermediateData, stdout, wordsValue, paragraphsValue);
+
 	
-	#ifndef NDEBUG
+	
+	#ifdef NDEBUG
 	printf("Pliki bazowe:\n");
 	{
 		int i;

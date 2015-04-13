@@ -5,14 +5,14 @@
 
 struct GramTrieRoot
 {
-	DynTab suffixes;
+	DynTab * suffixes;
 };
 
 typedef struct GramTrieRoot GramTrieRoot;
 
 struct GramTrieEntry
 {
-	DynTab suffixes;
+	DynTab * suffixes;
 	int word;
 };
 
@@ -24,10 +24,13 @@ struct GramTrieLeaf
 	int occurence;
 };
 
+typedef struct GramTrieLeaf GramTrieLeaf;
+
 struct IntermediateData
 {
 	DynTab * dictionary;
 	GramTrieRoot * gramTrieRoot;
+	int gramType;
 };
 
 typedef struct IntermediateData IntermediateData;
