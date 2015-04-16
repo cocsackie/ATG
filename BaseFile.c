@@ -2,75 +2,33 @@
 #include<stdlib.h>
 #include<string.h>
 
-#include "TypesAndDefs.h"
-#include "BaseFile.h"
 #include "IntermediateData.h"
 #include "Tree.h"
+#include "Error.h"
+#include "Util.h"
 
-static Tree * tree;
-static DynTab * dictionary;
-static char word[2048];
+static DynTab * files;
 static IntermediateData * data;
+static DynTab * dictionary;
+static Tree * gramTree;
 
-struct GramTreeEntry
-{
-	Tree * tree;
-	int word;
-};
+static char word[2048];
 
-typedef struct GramTreeEntry GramTreeEntry;
-
-struct GramTreeLeaf
-{
-	GramTreeEntry entry;
-	int occurence;
-};
-
-typedef struct GramTreeLeaf GramTreeLeaf;
-
-static char * copyString(const char * str)
-{
-	char * copyStr = malloc( strlen( str ) + 1 );
-	strcpy( copyStr, str );
-
-	return copyStr;
-}
-
-static boolean addAllWordsFromFileToTree(const char * fileName)
-{	
-	FILE * file = fopen(fileName, "r");
-	int r;
-
-	while( (r = fscanf(file, "%s", word)) != EOF )
-	{
-		boolean success = Tree_insert(tree, copyString(word));
-
-		if( success == FALSE )
-		{
-			fclose(file);
-			return FALSE;
-		}
-	}
-	
-	fclose(file);
-	return TRUE;
-}
-
-static void traverseHandler(void * value)
+static void dictionaryTreeTraverseHandler(void * value)
 {
 	char * str = (char *) value;
-	
+
 	if( dictionary->size == 0 )
 	{
-		DictionaryEntry * dictEntry = DictionaryEntry_create(copyString(str), 1);
-		DynTab_add(dictionary, dictEntry);
+		DictionaryEntry * entry = DictionaryEntry_create(copyString(str), 1);
+		DynTab_add(dictionary, entry);
 	}
 	else
 	{
 		if( strcmp(((DictionaryEntry*)dictionary->tab[dictionary->size-1])->word, str) )
 		{
-			DictionaryEntry * dictEntry = DictionaryEntry_create(copyString(str), 1);
-			DynTab_add(dictionary, dictEntry);
+			DictionaryEntry * entry = DictionaryEntry_create(copyString(str), 1);
+	                DynTab_add(dictionary, entry);
 		}
 		else
 		{
@@ -79,242 +37,183 @@ static void traverseHandler(void * value)
 	}
 }
 
-static boolean createDictionaryFromFiles(DynTab * fileNames)
+static void createDictionary( DynTab * files, int gramType )
 {
 	int i;
-	tree = Tree_create( (TreeComparator) strcmp);
+	Tree * tree = Tree_create( (TreeComparator) strcmp );
 	dictionary = DynTab_create();
 
-	for(i = 0; i < fileNames->size; i++)
+	for( i = 0; i < files->size; i++ )
 	{
-		boolean success = addAllWordsFromFileToTree(fileNames->tab[i]);
-		
-		if( success == FALSE )
+		int r;
+
+		while( (r = fscanf(files->tab[i], "%s", word)) != EOF )
 		{
-			Tree_destroy( tree, (TreeNodeDestructor) free );
-			return FALSE;
+			Tree_insert(tree, copyString(word));	
 		}
 	}
 
-	Tree_traverse( tree, (TreeTraverseHandler) traverseHandler );
+	Tree_traverse( tree, (TreeTraverseHandler) dictionaryTreeTraverseHandler );
 	Tree_destroy( tree, (TreeNodeDestructor) free );
-	return TRUE;
+	data->dictionary = dictionary;
 }
 
-static int gtecmp( const void * a, const void * b )
+static int gramTreeComparator( const void * a, const void * b )
 {
-	GramTreeEntry * pa = (GramTreeEntry*) a;
-	GramTreeEntry * pb = (GramTreeEntry*) b;
-	
-	if(pa->word == pb->word)
+	int i;
+	int * lastWords = (int*) a;
+	GramTreeEntry * entry = (GramTreeEntry*) b;
+	int * prefix = entry->prefix;
+
+	for( i = 0; i < entry->prefixSize; i++ )
+	{
+		if(lastWords[i] != prefix[i])
+		{
+			return lastWords[i] < prefix[i] ? -1 : 1;
+		}
+	}
+
+	return 0;
+}
+
+static int suffixSearchComparator(const void * a, const void * b)
+{
+	int lastWordSuffix = *((int *) a);
+	GramSuffix * gramSuffix = (GramSuffix*) b;
+
+	if( lastWordSuffix == gramSuffix->word )
 	{
 		return 0;
 	}
 
-	return pa->word < pb->word ? -1 : 1;
+	return lastWordSuffix < gramSuffix->word ? -1 : 1;
 }
 
-static boolean createGramTreeFromFileAndDictionary(const char * fileName, int gramType)
+static void expandGramTreeWithFile( FILE * file, int gramType )
 {
-	Tree * currTree;
-	DynTab * lastWords = DynTab_create();
-	FILE * file = fopen(fileName, "r");
-	int r;
-	int i;
+	int i,r,count = 0;
+	int * lastWords = malloc( sizeof(int) * gramType );
+
+	if( lastWords == NULL )
+	{
+		OutOfMemoryError();
+	}
 
 	while( (r = fscanf(file, "%s", word)) != EOF )
 	{
 		int wordIndex = DynTab_binsearch(dictionary, word, dictionaryWordCompare);
 
-		if(wordIndex == -1)
+		if( count < gramType-1 )
 		{
-			//TODO: fail
-			fclose(file);
-			return FALSE;
-		}
-
-		if( lastWords->size < gramType-1 )
-		{
-			DynTab_add(lastWords, dictionary->tab[wordIndex]);
+			lastWords[count++] = wordIndex;
 		}
 		else
-		{	
-			GramTreeEntry * entry;
-			GramTreeLeaf * leaf;
-			for( i = 0; i < lastWords->size-1; i-- )
+		{
+			lastWords[gramType-1] = wordIndex;
+
+			GramTreeEntry * entry = Tree_find(data->gramTree, lastWords, (TreeComparator) gramTreeComparator);		
+
+			if(entry == NULL)
 			{
-				lastWords->tab[i] = lastWords->tab[i+1];
+				GramTreeEntry * newEntry = GramTreeEntry_create(lastWords, gramType);
+				GramSuffix * newSuffix = GramSuffix_create(lastWords[gramType-1], 1); 
+				Tree_insert(data->gramTree, newEntry);
+				DynTab_add(newEntry->suffixes, newSuffix);
 			}
-
-			currTree = tree;
-
-			for( i = 0; i < gramType-1; i++ )
+			else
 			{
-				entry = Tree_find(currTree, lastWords->tab[i], gtecmp);
-				
-				if( entry != NULL )
+				int suffixIndex = DynTab_search(entry->suffixes, &lastWords[gramType-1], (DynTabComparator) suffixSearchComparator);
+
+				if( suffixIndex == -1 )
 				{
-					currTree = entry->tree;
+					GramSuffix * newSuffix = GramSuffix_create(lastWords[gramType-1], 1);
+					DynTab_add(entry->suffixes, newSuffix);
 				}
 				else
 				{
-					entry = malloc( sizeof( GramTreeEntry ) );
-					
-					if( entry == NULL )
-					{
-						//TODO: fail
-						fclose(file);
-						return FALSE;
-					}
-					
-					entry->word = (int) lastWords->tab[i];
-					entry->tree = Tree_create( (TreeComparator) gtecmp );
-					Tree_insert(currTree, entry); 
-					currTree = entry->tree;
+					GramSuffix * suffix = entry->suffixes->tab[suffixIndex];
+					suffix->occurences++;
 				}
 			}
 
-			leaf = Tree_find(currTree, lastWords->tab[gramType-1], gtecmp);
-			if( leaf != NULL )
+			for( i = 0; i < gramType-1; i++ )
 			{
-				leaf->occurence++;
-			}			
-			else
-			{
-				leaf = malloc( sizeof( GramTreeLeaf ) );
-				
-				if( leaf == NULL )
-				{
-					//TODO: fail
-				}
-
-				leaf->entry.word = (int) lastWords->tab[gramType-1];
-				leaf->entry.tree = NULL;
-				Tree_insert(currTree, leaf);
+				lastWords[i] = lastWords[i+1];
 			}
 		}
-	}
-	
-	fclose(file);
-	return TRUE;
+	} 
 }
 
-static int gType;
-static DynTab * stackTree;
-static DynTab * stackTable;
-static DynTab * handlerReturnTable;
-static int depth = 0;
+static int diffGrams;
 
-static void treeToTabTraverseHandler(void * value)
+static void debugTraverser( void * value )
 {
-	if( depth != gType-1 )
+	int i,j;
+	GramTreeEntry * e = (GramTreeEntry*) value;
+
+	for( i = 0; i < e->suffixes->size; i++ )
 	{
-		GramTreeEntry * entry = (GramTreeEntry*) value;
-	
-		GramTrieEntry * trieEntry = malloc( sizeof( GramTrieEntry ) );
-
-		if( trieEntry == NULL )
+		printf("N-GRAM: ");
+		for( j = 0; j < e->prefixSize; j++ )
 		{
-			exit(0);
+			printf("%s,", ((DictionaryEntry*)data->dictionary->tab[e->prefix[j]])->word);
 		}
-
-		trieEntry->word = entry->word;
-		trieEntry->suffixes = DynTab_create();
-
-		if( trieEntry->suffixes == NULL )
-		{
-			exit(0);
-		}
-
-		DynTab_add( stackTable->tab[stackTable->size-1], trieEntry);
-	
-		depth++;
-		DynTab_add( stackTree, entry->tree );
-		DynTab_add( stackTable, trieEntry->suffixes );
-		Tree_traverse( stackTree->tab[stackTree->size-1], (TreeTraverseHandler) treeToTabTraverseHandler );
-		stackTree->size--;
-		stackTable->size--;
-		depth--;
-	} else {
-		GramTreeLeaf * leaf = (GramTreeLeaf*) value;
-		GramTrieLeaf * trieLeaf = malloc( sizeof( GramTrieLeaf ) );
-
-		if( trieLeaf == NULL )
-		{
-			exit(0);
-		}
-	
-		trieLeaf->word = leaf->entry.word;
-		trieLeaf->occurence = leaf->occurence;
-
-		DynTab_add(stackTable->tab[stackTable->size-1], trieLeaf);
-
-		return;
+		printf("%s\n", ((DictionaryEntry*)data->dictionary->tab[((GramSuffix*)e->suffixes->tab[i])->word])->word);
 	}
+	diffGrams += e->suffixes->size; 
 }
 
-static boolean createGramTreeFromFilesAndDictionary(DynTab * fileNames, int gramType)
+static void createGramTree( DynTab * files, int gramType )
 {
 	int i;
-	Tree * currTree;
-	GramTrieRoot * gramTrieRoot;
-	tree = Tree_create( (TreeComparator) gtecmp );
 
-	for(i = 0; i < fileNames->size; i++)
+	for( i = 0; i < files->size; i++ )
 	{
-		boolean success = createGramTreeFromFileAndDictionary(fileNames->tab[i], gramType);
-
-		if( success == FALSE )
-		{
-			//TODO: destroy tree
-			return FALSE;
-		}
+		expandGramTreeWithFile(files->tab[i], gramType);
 	}
 
-	
-	
-	data = malloc( sizeof( IntermediateData ) );
-	gramTrieRoot = malloc( sizeof( GramTrieRoot ) );
+	//debug
 
-	if( data == NULL || gramTrieRoot == NULL )
-	{
-		//TODO: exit
-		return FALSE;
-	}
-	
-	currTree = tree;
+	//Tree_traverse(data->gramTree, (TreeTraverseHandler) debugTraverser);
+	//printf("Wczytano %d roznych gramow!\n", diffGrams);
 
-	stackTree = DynTab_create();
-	stackTable = DynTab_create();
-	handlerReturnTable = DynTab_create();
-	gType = gramType;
-	DynTab_add(stackTable, handlerReturnTable);
-
-	for( i = 0; i < gramType-1; i++ )
-	{	
-		if( handlerReturnTable == NULL )
-		{
-			return FALSE;
-			//exit();
-		}
-
-		Tree_traverse(currTree, (TreeTraverseHandler) treeToTabTraverseHandler);
-	}
-
-	data->dictionary = dictionary;
-	data->gramTrieRoot = gramTrieRoot;
-	data->gramType = gramType;
-
-	gramTrieRoot->suffixes = handlerReturnTable;
-	
-	//TODO:destroy tree
-
-	return TRUE;
+	//debug-end
 }
 
 IntermediateData * BaseFile_loadBaseFilesToIntermediateData(DynTab * fileNames, int gramType)
 {
-	boolean success = createDictionaryFromFiles(fileNames);
-	createGramTreeFromFilesAndDictionary(fileNames, gramType);
-	return data;	
+	int i;
+	files = DynTab_create();
+	dictionary = DynTab_create();
+	data = IntermediateData_create( gramType );
+	
+	data->gramType = gramType;
+
+	for( i = 0; i < fileNames->size; i++ )
+	{
+		FILE * file = fopen(fileNames->tab[i], "r");
+		
+		if( file == NULL )
+		{
+			CantOpenFileError(fileNames->tab[i]);
+		}
+
+		DynTab_add(files, file);
+	}
+
+	createDictionary( files, gramType );
+
+	for( i = 0; i < files->size; i++ )
+	{
+		rewind(files->tab[i]);
+	}
+
+	createGramTree( files, gramType );
+	
+	for( i = 0; i < files->size; i++ )
+	{
+		fclose(files->tab[i]);
+	}
+
+	return data;
 }

@@ -6,17 +6,25 @@
 #include "Debug.h"
 #include "TypesAndDefs.h"
 #include "DynTab.h"
-#include "BaseFile.h"
+#include "Util.h"
 #include "Generator.h"
 
-void InformAboutRequiredArgument()
+void InformAboutRequiredArgumentAndExit()
 {
 	printf("Nie podałeś argumentu dla flagi -%c!\n", optopt);
+	exit(EXIT_FAILURE);
 }
 
-void InformAboutUnknownFlag()
+void InformAboutInvalidArgumentAndExit(int c)
+{
+	printf("Podałeś zły argument dla flagi -%c!\n", c);
+	exit(EXIT_FAILURE);
+}
+
+void InformAboutUnknownFlagAndExit()
 {
 	printf("Nieznana flaga -%c!\n", optopt);
+	exit(EXIT_FAILURE);
 }
 
 void HandleRepeatedFlagAndExit(int c)
@@ -37,29 +45,16 @@ void HandleGetOptErrorAndExit()
 		case 'p':
 		case 'n':
 		{
-			InformAboutRequiredArgument();
-			exit(EXIT_FAILURE);
+			InformAboutRequiredArgumentAndExit();
 		}
 		default:
 		{
-			InformAboutUnknownFlag();
-			exit(EXIT_FAILURE);
+			InformAboutUnknownFlagAndExit();
 		}
 	}
 }
 
-// returns 1 if non-number 
-
-int parseInt(const char * str, int * value)
-{
-	errno = 0;
-	*value = strtol(str, NULL, 10);
-
-	return errno != 0;
-}
-
 static DynTab * baseFileNames;
-static IntermediateData * intermediateData;
 
 static void cleanup()
 {
@@ -74,11 +69,8 @@ int main(int argc, char ** argv)
 	int c;
 	int index;
 
-	if( (baseFileNames = DynTab_create()) == NULL )
-	{
-		//TODO: report error
-	}
-	
+	baseFileNames = DynTab_create();
+
 	boolean intermediateFlag = FALSE;
 	char * intermediateFileName = NULL;
 
@@ -99,6 +91,7 @@ int main(int argc, char ** argv)
 	boolean gramTypeFlag = FALSE;
 	char * gramType = NULL;
 	int gramTypeValue = 2;
+	IntermediateData * intermediateData;
 
 	opterr = 0; //disable optget error messages
 
@@ -205,20 +198,17 @@ int main(int argc, char ** argv)
 
 	if(wordsFlag && parseInt(words, &wordsValue))
 	{
-		//TODO: invalid words argument
-		assert(0);
+		InformAboutInvalidArgumentAndExit('w');
 	}
 
 	if(paragraphsFlag && parseInt(paragraphs, &paragraphsValue))
 	{
-		//TODO: invalid paragraphs argument
-		assert(0);
+		InformAboutInvalidArgumentAndExit('p');
 	}
 
 	if(gramTypeFlag && parseInt(gramType, &gramTypeValue))
 	{
-		//TODO: invalid gramType argument
-		assert(0);
+		InformAboutInvalidArgumentAndExit('p');
 	}
 
 	if( baseFileNames->size == 0 && intermediateFileName == NULL )
@@ -228,17 +218,17 @@ int main(int argc, char ** argv)
 
 	if( gramTypeValue <= 0 )
 	{
-		//TODO: negative gram type value
+		InformAboutInvalidArgumentAndExit('n');
 	}
 
 	if( wordsValue <= 0 || wordsValue < gramTypeValue )
 	{
-		//TODO: wordsValue too small
+		InformAboutInvalidArgumentAndExit('w');
 	}
 
 	if( paragraphsValue <= 0 )
 	{
-		//TODO: paragraphsValue too small
+		InformAboutInvalidArgumentAndExit('p');
 	}
 
 	if( baseFileNames->size != 0 )
@@ -251,7 +241,7 @@ int main(int argc, char ** argv)
 	}
 	else
 	{
-		intermediateData = NULL; //TODO: read
+		//intermediateData = NULL; //TODO: read
 	}
 
 	//TODO: statistics
@@ -260,7 +250,7 @@ int main(int argc, char ** argv)
 
 	
 	
-	#ifdef NDEBUG
+	#ifndef NDEBUG
 	printf("Pliki bazowe:\n");
 	{
 		int i;

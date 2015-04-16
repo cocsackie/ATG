@@ -15,8 +15,10 @@ struct DynTab
 typedef struct DynTab DynTab;
 
 DynTab * DynTab_create();
-boolean DynTab_add(DynTab * tab, void * element);
+void DynTab_add(DynTab * tab, void * element);
 
 int DynTab_binsearch(DynTab * tab, void * element, DynTabComparator comparator);
+
+int DynTab_search(DynTab * tab, void * element, DynTabComparator comparator);
 
 #endif

@@ -2,34 +2,12 @@
 #define __INTERMEDIATE_DATA_H__
 
 #include "DynTab.h"
-
-struct GramTrieRoot
-{
-	DynTab * suffixes;
-};
-
-typedef struct GramTrieRoot GramTrieRoot;
-
-struct GramTrieEntry
-{
-	DynTab * suffixes;
-	int word;
-};
-
-typedef struct GramTrieEntry GramTrieEntry;
-
-struct GramTrieLeaf
-{
-	int word;
-	int occurence;
-};
-
-typedef struct GramTrieLeaf GramTrieLeaf;
+#include "Tree.h"
 
 struct IntermediateData
 {
 	DynTab * dictionary;
-	GramTrieRoot * gramTrieRoot;
+	Tree * gramTree;
 	int gramType;
 };
 
@@ -43,8 +21,27 @@ struct DictionaryEntry
 
 typedef struct DictionaryEntry DictionaryEntry;
 
+struct GramTreeEntry
+{
+	int * prefix;
+	int prefixSize;
+	DynTab * suffixes;
+};
+
+typedef struct GramTreeEntry GramTreeEntry;
+
+struct GramSuffix
+{
+	int word;
+	int occurences;
+};
+
+typedef struct GramSuffix GramSuffix;
+
+IntermediateData * IntermediateData_create( int gramType );
 DictionaryEntry * DictionaryEntry_create(char * word, int occurences);
 
 int dictionaryWordCompare(const void * a, const void * b);
-
+GramTreeEntry * GramTreeEntry_create(int * prefix, int gramSize);
+GramSuffix * GramSuffix_create();
 #endif

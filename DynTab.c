@@ -3,6 +3,7 @@
 
 #include "DynTab.h"
 #include "Debug.h"
+#include "Error.h"
 
 const size_t defaultSize = 16;
 
@@ -19,12 +20,14 @@ DynTab * DynTab_create()
 		{
 			free( tab );
 		} 
+	} else {
+		OutOfMemoryError();
 	}
 
 	return tab;
 }
 
-boolean DynTab_add(DynTab * tab, void * element)
+void DynTab_add(DynTab * tab, void * element)
 {
 	assert(tab != NULL);
 	
@@ -33,7 +36,7 @@ boolean DynTab_add(DynTab * tab, void * element)
 		void * tmp = realloc(tab->tab, tab->capacity*2*sizeof(void *));
 		if( tmp == NULL )
 		{
-			return FALSE;
+			OutOfMemoryError();
 		}
 		tab->tab = tmp;
 		tab->capacity *= 2;
@@ -43,7 +46,6 @@ boolean DynTab_add(DynTab * tab, void * element)
 	
 	tab->tab[tab->size] = element;
 	tab->size++;
-	return TRUE;
 }
 
 static calcMiddle(int start, int end)
@@ -79,6 +81,20 @@ int DynTab_binsearch(DynTab * tab, void * element, DynTabComparator comparator)
 	if( comparator(element, tab->tab[start]) == 0 )
 	{
 		return start;
+	}
+
+	return -1;
+}
+
+int DynTab_search(DynTab * tab, void * element, DynTabComparator comparator)
+{
+	int i;
+	for( i = 0; i < tab->size; i++ )
+	{
+		if(comparator(element, tab->tab[i]) == 0)
+		{
+			return i;
+		}
 	}
 
 	return -1;

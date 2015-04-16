@@ -10,7 +10,8 @@ Tree * Tree_create(TreeComparator cmp)
 	if( tree != NULL )
 	{
 		tree->root = NULL;
-		tree->cmp = cmp;	
+		tree->cmp = cmp;
+		tree->size = 0;
 	}
 
 	return tree;	
@@ -96,6 +97,8 @@ boolean Tree_insert(Tree * tree, void * value)
 			prev->right = new;
 		}
 	}
+
+	tree->size++;
 
 	return TRUE;
 }

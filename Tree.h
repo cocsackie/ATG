@@ -19,6 +19,7 @@ typedef struct Node Node;
 struct Tree
 {
 	Node * root;
+	int size;
 	TreeComparator cmp;
 };
 
