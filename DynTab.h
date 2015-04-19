@@ -4,6 +4,7 @@
 #include "TypesAndDefs.h"
 
 typedef int (*DynTabComparator)(const void *, const void *);
+typedef void (*DynTabValueDestructor)(void *);
 
 struct DynTab
 {
@@ -15,6 +16,8 @@ struct DynTab
 typedef struct DynTab DynTab;
 
 DynTab * DynTab_create();
+void DynTab_destroy(DynTab * tab, DynTabValueDestructor destructor);
+void DynTab_resize(DynTab * tab, int size);
 void DynTab_add(DynTab * tab, void * element);
 
 int DynTab_binsearch(DynTab * tab, void * element, DynTabComparator comparator);

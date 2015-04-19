@@ -1,6 +1,8 @@
 #ifndef __INTERMEDIATE_DATA_H__
 #define __INTERMEDIATE_DATA_H__
 
+#include <stdio.h>
+
 #include "DynTab.h"
 #include "Tree.h"
 
@@ -38,10 +40,12 @@ struct GramSuffix
 
 typedef struct GramSuffix GramSuffix;
 
-IntermediateData * IntermediateData_create( int gramType );
+IntermediateData * IntermediateData_create();
 DictionaryEntry * DictionaryEntry_create(char * word, int occurences);
 
 int dictionaryWordCompare(const void * a, const void * b);
 GramTreeEntry * GramTreeEntry_create(int * prefix, int gramSize);
 GramSuffix * GramSuffix_create();
+void IntermediateData_save(IntermediateData * data, FILE * file);
+IntermediateData * IntermediateData_load(FILE * file);
 #endif

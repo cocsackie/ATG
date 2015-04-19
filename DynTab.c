@@ -27,19 +27,36 @@ DynTab * DynTab_create()
 	return tab;
 }
 
+void DynTab_destroy(DynTab * tab, DynTabValueDestructor destructor)
+{
+	int i;
+	for( i = 0; i < tab->size; i++ )
+	{
+		destructor(tab->tab[i]);
+	}
+	
+	free(tab);
+}
+
+void DynTab_resize(DynTab * tab, int size)
+{
+	void * tmp = realloc(tab->tab, size*sizeof(void*));
+	
+	if( tmp == NULL )
+	{
+		OutOfMemoryError();
+	}
+	tab->tab = tmp;
+	tab->capacity = size;
+}
+
 void DynTab_add(DynTab * tab, void * element)
 {
 	assert(tab != NULL);
 	
 	if( tab->size == tab->capacity )
 	{
-		void * tmp = realloc(tab->tab, tab->capacity*2*sizeof(void *));
-		if( tmp == NULL )
-		{
-			OutOfMemoryError();
-		}
-		tab->tab = tmp;
-		tab->capacity *= 2;
+		DynTab_resize(tab, tab->capacity*2);
 	}
 
 	assert( tab->size < tab->capacity );

@@ -4,5 +4,5 @@
 void ShowErrorAndExit(char * error);
 void OutOfMemoryError();
 void CantOpenFileError(char * fileName);
-
+void NotIntermediateFileError();
 #endif

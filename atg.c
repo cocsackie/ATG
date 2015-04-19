@@ -8,6 +8,8 @@
 #include "DynTab.h"
 #include "Util.h"
 #include "Generator.h"
+#include "IntermediateData.h"
+#include "BaseFile.h"
 
 void InformAboutRequiredArgumentAndExit()
 {
@@ -24,6 +26,12 @@ void InformAboutInvalidArgumentAndExit(int c)
 void InformAboutUnknownFlagAndExit()
 {
 	printf("Nieznana flaga -%c!\n", optopt);
+	exit(EXIT_FAILURE);
+}
+
+void InformAboutMissingBaseFileName()
+{
+	printf("Potrzebny jest przynajmniej jedn plik bazowy!\n");
 	exit(EXIT_FAILURE);
 }
 
@@ -60,7 +68,7 @@ static void cleanup()
 {
 	if(baseFileNames != NULL)
 	{
-		free(baseFileNames);
+		DynTab_destroy(baseFileNames, free);
 	}
 }
 
@@ -236,12 +244,14 @@ int main(int argc, char ** argv)
 		intermediateData = BaseFile_loadBaseFilesToIntermediateData( baseFileNames, gramTypeValue );
 		if( intermediateFileName != NULL )
 		{
-			//TODO: save
+			FILE * intermediateFile = fopen(intermediateFileName, "wb");
+			IntermediateData_save(intermediateData, intermediateFile);
 		}
 	}
 	else
 	{
-		//intermediateData = NULL; //TODO: read
+		FILE * intermediateFile = fopen(intermediateFileName, "rb");
+		intermediateData = IntermediateData_load(intermediateFile);
 	}
 
 	//TODO: statistics
