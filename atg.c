@@ -10,6 +10,7 @@
 #include "Generator.h"
 #include "IntermediateData.h"
 #include "BaseFile.h"
+#include "Statistics.h"
 
 void InformAboutRequiredArgumentAndExit()
 {
@@ -63,21 +64,55 @@ void HandleGetOptErrorAndExit()
 }
 
 static DynTab * baseFileNames;
+static DynTab * baseFiles;
+static FILE * intermediateFile;
+static FILE * statisticsFile;
+static IntermediateData * intermediateData;
+
+static void closeFile(void * file)
+{
+	FILE * f = file;
+	fclose(f);
+}
 
 static void cleanup()
 {
+
+	if(intermediateData != NULL)
+	{
+		IntermediateData_destroy(intermediateData);
+	}
+
+	if(statisticsFile != NULL)
+	{
+		fclose(statisticsFile);
+	}
+	
+	if(intermediateFile != NULL)
+	{
+		fclose(intermediateFile);
+	}
+	
+	if(baseFiles != NULL)
+	{
+		DynTab_destroy(baseFiles, closeFile);
+	}
+	
 	if(baseFileNames != NULL)
 	{
-		DynTab_destroy(baseFileNames, free);
+		DynTab_destroy(baseFileNames, NULL);
 	}
 }
 
 int main(int argc, char ** argv)
 {
-	int c;
+	int c, i;
 	int index;
 
+	atexit(cleanup);
+
 	baseFileNames = DynTab_create();
+	baseFiles = DynTab_create();
 
 	boolean intermediateFlag = FALSE;
 	char * intermediateFileName = NULL;
@@ -99,7 +134,6 @@ int main(int argc, char ** argv)
 	boolean gramTypeFlag = FALSE;
 	char * gramType = NULL;
 	int gramTypeValue = 2;
-	IntermediateData * intermediateData;
 
 	opterr = 0; //disable optget error messages
 
@@ -221,7 +255,7 @@ int main(int argc, char ** argv)
 
 	if( baseFileNames->size == 0 && intermediateFileName == NULL )
 	{
-		//TODO: missing basefile name/s
+		InformAboutMissingBaseFileName();
 	}
 
 	if( gramTypeValue <= 0 )
@@ -239,22 +273,59 @@ int main(int argc, char ** argv)
 		InformAboutInvalidArgumentAndExit('p');
 	}
 
+	for( i = 0; i < baseFileNames->size; i++ )
+	{
+		FILE * file = fopen(baseFileNames->tab[i], "r");
+		
+		if( file == NULL )
+		{
+			CantOpenFileError(baseFileNames->tab[i]);
+		}
+
+		DynTab_add(baseFiles, file);
+	}
+
+	if( statisticsFileName != NULL )
+	{
+		statisticsFile = fopen(statisticsFileName, "w");
+		
+		if(statisticsFile == NULL )
+		{
+			CantOpenFileError(statisticsFileName);
+		}
+	}
+
+	if( intermediateFileName != NULL )
+	{
+		if( baseFileNames->size != 0 )
+		{
+			intermediateFile = fopen(intermediateFileName, "wb");
+		}
+		else
+		{
+			intermediateFile = fopen(intermediateFileName, "rb");
+		}
+
+		if(intermediateFile == NULL)
+		{
+			CantOpenFileError(intermediateFileName);
+		}
+	}
+
 	if( baseFileNames->size != 0 )
 	{	
-		intermediateData = BaseFile_loadBaseFilesToIntermediateData( baseFileNames, gramTypeValue );
+		intermediateData = BaseFile_loadBaseFilesToIntermediateData( baseFiles, gramTypeValue );
 		if( intermediateFileName != NULL )
 		{
-			FILE * intermediateFile = fopen(intermediateFileName, "wb");
 			IntermediateData_save(intermediateData, intermediateFile);
 		}
 	}
 	else
 	{
-		FILE * intermediateFile = fopen(intermediateFileName, "rb");
 		intermediateData = IntermediateData_load(intermediateFile);
 	}
 
-	//TODO: statistics
+	Statistics_generateStatistics(intermediateData, statisticsFile);
 
 	Generator_generate(intermediateData, stdout, wordsValue, paragraphsValue);
 

@@ -4,6 +4,6 @@
 #include "DynTab.h"
 #include "IntermediateData.h"
 
-IntermediateData * BaseFile_loadBaseFilesToIntermediateData(DynTab * fileNames, int gramType);
+IntermediateData * BaseFile_loadBaseFilesToIntermediateData(DynTab * files, int gramType);
 
 #endif

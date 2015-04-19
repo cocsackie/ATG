@@ -41,6 +41,7 @@ struct GramSuffix
 typedef struct GramSuffix GramSuffix;
 
 IntermediateData * IntermediateData_create();
+void IntermediateData_destroy(IntermediateData * data);
 DictionaryEntry * DictionaryEntry_create(char * word, int occurences);
 
 int dictionaryWordCompare(const void * a, const void * b);

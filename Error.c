@@ -21,6 +21,6 @@ void CantOpenFileError(char * fileName)
 
 void NotIntermediateFileError()
 {
-	printf("Podany plik nie jest plikiem pośrednim!");
+	printf("Podany plik nie jest plikiem pośrednim!\n");
 	exit(EXIT_FAILURE);
 }

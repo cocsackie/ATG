@@ -7,10 +7,8 @@
 #include "Error.h"
 #include "Util.h"
 
-static DynTab * files;
 static IntermediateData * data;
 static DynTab * dictionary;
-static Tree * gramTree;
 
 static char word[2048];
 
@@ -55,6 +53,8 @@ static void createDictionary( DynTab * files, int gramType )
 
 	Tree_traverse( tree, (TreeTraverseHandler) dictionaryTreeTraverseHandler );
 	Tree_destroy( tree, (TreeNodeDestructor) free );
+	
+	DynTab_destroy(data->dictionary, free);
 	data->dictionary = dictionary;
 }
 
@@ -141,7 +141,8 @@ static void expandGramTreeWithFile( FILE * file, int gramType )
 				lastWords[i] = lastWords[i+1];
 			}
 		}
-	} 
+	}
+	free(lastWords);
 }
 
 static int diffGrams;
@@ -180,26 +181,12 @@ static void createGramTree( DynTab * files, int gramType )
 	//debug-end
 }
 
-IntermediateData * BaseFile_loadBaseFilesToIntermediateData(DynTab * fileNames, int gramType)
+IntermediateData * BaseFile_loadBaseFilesToIntermediateData(DynTab * files, int gramType)
 {
 	int i;
-	files = DynTab_create();
-	dictionary = DynTab_create();
-	data = IntermediateData_create( gramType );
+	data = IntermediateData_create();
 	
 	data->gramType = gramType;
-
-	for( i = 0; i < fileNames->size; i++ )
-	{
-		FILE * file = fopen(fileNames->tab[i], "r");
-		
-		if( file == NULL )
-		{
-			CantOpenFileError(fileNames->tab[i]);
-		}
-
-		DynTab_add(files, file);
-	}
 
 	createDictionary( files, gramType );
 
@@ -209,11 +196,6 @@ IntermediateData * BaseFile_loadBaseFilesToIntermediateData(DynTab * fileNames, 
 	}
 
 	createGramTree( files, gramType );
-	
-	for( i = 0; i < files->size; i++ )
-	{
-		fclose(files->tab[i]);
-	}
 
 	return data;
 }

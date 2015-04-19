@@ -18,7 +18,7 @@ DynTab * DynTab_create()
 		tab->tab = malloc( sizeof( *tab->tab ) * defaultSize );
 		if( tab->tab == NULL )
 		{
-			free( tab );
+			OutOfMemoryError();
 		} 
 	} else {
 		OutOfMemoryError();
@@ -30,11 +30,15 @@ DynTab * DynTab_create()
 void DynTab_destroy(DynTab * tab, DynTabValueDestructor destructor)
 {
 	int i;
-	for( i = 0; i < tab->size; i++ )
-	{
-		destructor(tab->tab[i]);
-	}
 	
+	if( destructor != NULL )
+	{
+		for( i = 0; i < tab->size; i++ )
+		{
+			destructor(tab->tab[i]);
+		}
+	}
+	free(tab->tab);	
 	free(tab);
 }
 

@@ -43,6 +43,30 @@ IntermediateData * IntermediateData_create()
 	return id;
 }
 
+void destroyGramTreeEntry(void * value)
+{
+	GramTreeEntry * entry = value;
+
+	free(entry->prefix);
+	DynTab_destroy(entry->suffixes, free);
+	free(entry);
+}
+
+void freeDictionaryEntry(void * value)
+{
+	DictionaryEntry * entry = value;
+
+	free(entry->word);
+	free(entry);
+}
+
+void IntermediateData_destroy(IntermediateData * data)
+{
+	DynTab_destroy(data->dictionary, freeDictionaryEntry);
+	Tree_destroy(data->gramTree, destroyGramTreeEntry);
+	free(data);
+}
+
 DictionaryEntry * DictionaryEntry_create(char * word, int occurences)
 {
 	DictionaryEntry * dictEntry = malloc (sizeof( DictionaryEntry ) );
@@ -68,7 +92,7 @@ GramTreeEntry * GramTreeEntry_create(int * prefix, int gramSize)
 		OutOfMemoryError();
 	}
 	
-	entry->prefix = malloc( sizeof( int ) * gramSize );
+	entry->prefix = malloc( sizeof( int ) * (gramSize-1) );
 
 	if( entry->prefix == NULL )
 	{
@@ -78,7 +102,7 @@ GramTreeEntry * GramTreeEntry_create(int * prefix, int gramSize)
 	entry->suffixes = DynTab_create();
 	entry->prefixSize = gramSize-1;
 
-	for( i = 0; i < gramSize; i++ )
+	for( i = 0; i < gramSize-1; i++ )
 	{
 		entry->prefix[i] = prefix[i];
 	}
