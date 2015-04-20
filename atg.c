@@ -36,7 +36,7 @@ void InformAboutMissingBaseFileName()
 	exit(EXIT_FAILURE);
 }
 
-void InrormAboutMissingOutputFileName()
+void InformAboutMissingOutputFileName()
 {
 	printf("Podaj nazwę pliku wyjściowego!\n");
 	exit(EXIT_FAILURE);
@@ -287,7 +287,7 @@ int main(int argc, char ** argv)
 
 	if( outputFileName == NULL )
 	{
-		InformAboutMissingBaseFileName();
+		InformAboutMissingOutputFileName();
 	}
 
 	outputFile = fopen(outputFileName, "w+");
