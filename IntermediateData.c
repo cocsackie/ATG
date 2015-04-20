@@ -170,7 +170,7 @@ void IntermediateData_save(IntermediateData * data, FILE * file)
 	for( i = 0; i < dictionary->size; i++ )
 	{
 		DictionaryEntry * entry = dictionary->tab[i];
-		int wordSize = strlen(entry->word);
+		short wordSize = strlen(entry->word);
 		fwrite(&wordSize, sizeof(wordSize), 1, file);
 		fwrite(entry->word, sizeof(*entry->word)*wordSize, 1, file);
 		fwrite(&entry->occurences, sizeof(entry->occurences), 1, file);
@@ -210,7 +210,7 @@ static void createGramTree()
 IntermediateData * IntermediateData_load(FILE * file)
 {
 	int i,j;
-	int wordCount;
+	size_t wordCount;
 	int grams;
 	data = IntermediateData_create();
 	treeEntriesSorted = DynTab_create();
@@ -239,7 +239,7 @@ IntermediateData * IntermediateData_load(FILE * file)
 	for( i = 0; i < wordCount; i++ )
 	{
 		DictionaryEntry * entry;
-		int wordSize;
+		short wordSize;
 		int occurences;
 		char * word;
 		fread(&wordSize, sizeof(wordSize), 1, file);
