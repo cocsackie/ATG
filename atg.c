@@ -39,6 +39,7 @@ void InformAboutMissingBaseFileName()
 void InrormAboutMissingOutputFileName()
 {
 	printf("Podaj nazwę pliku wyjściowego!\n");
+	exit(EXIT_FAILURE);
 }
 
 void HandleRepeatedFlagAndExit(int c)
@@ -286,7 +287,7 @@ int main(int argc, char ** argv)
 
 	if( outputFileName == NULL )
 	{
-		InformAboutRequiredArgumentAndExit('o');
+		InformAboutMissingBaseFileName();
 	}
 
 	outputFile = fopen(outputFileName, "w+");
