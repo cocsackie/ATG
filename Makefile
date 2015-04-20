@@ -1,14 +1,19 @@
 #CFLAGS=-w
 CFLAGS=-ggdb
 LDLIBS=-lm
-.PHONY: clean
+.PHONY: clean test
 
 
-all: clean atg
+all: clean test atg
 
 clean:
 	rm -f *.o
+	rm -f atg
 
 atg: atg.o IntermediateData.o Error.o BaseFile.o Tree.o DynTab.o Util.o Generator.o Statistics.o
 
-*.o: *.c *.h
+test: test/Makefile
+	cd test && make
+	
+
+*.o: *.c
