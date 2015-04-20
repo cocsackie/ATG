@@ -170,7 +170,7 @@ void IntermediateData_save(IntermediateData * data, FILE * file)
 	for( i = 0; i < dictionary->size; i++ )
 	{
 		DictionaryEntry * entry = dictionary->tab[i];
-		short wordSize = strlen(entry->word);
+		int wordSize = strlen(entry->word);
 		fwrite(&wordSize, sizeof(wordSize), 1, file);
 		fwrite(entry->word, sizeof(*entry->word)*wordSize, 1, file);
 		fwrite(&entry->occurences, sizeof(entry->occurences), 1, file);
@@ -239,7 +239,7 @@ IntermediateData * IntermediateData_load(FILE * file)
 	for( i = 0; i < wordCount; i++ )
 	{
 		DictionaryEntry * entry;
-		short wordSize;
+		int wordSize;
 		int occurences;
 		char * word;
 		fread(&wordSize, sizeof(wordSize), 1, file);
