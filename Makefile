@@ -1,5 +1,6 @@
 #CFLAGS=-w
 CFLAGS=-ggdb
+LDLIBS=-lm
 .PHONY: clean
 
 

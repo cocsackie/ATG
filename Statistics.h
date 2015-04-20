@@ -4,6 +4,6 @@
 #include <stdio.h>
 #include "IntermediateData.h"
 
-void Statistics_generateStatistics(IntermediateData * data, FILE * file);
+void Statistics_generateStatistics(IntermediateData * data, FILE * statisticsFile, FILE * outputFile);
 
 #endif

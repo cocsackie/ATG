@@ -32,8 +32,13 @@ void InformAboutUnknownFlagAndExit()
 
 void InformAboutMissingBaseFileName()
 {
-	printf("Potrzebny jest przynajmniej jedn plik bazowy!\n");
+	printf("Potrzebny jest przynajmniej jeden plik bazowy!\n");
 	exit(EXIT_FAILURE);
+}
+
+void InrormAboutMissingOutputFileName()
+{
+	printf("Podaj nazwę pliku wyjściowego!\n");
 }
 
 void HandleRepeatedFlagAndExit(int c)
@@ -67,6 +72,7 @@ static DynTab * baseFileNames;
 static DynTab * baseFiles;
 static FILE * intermediateFile;
 static FILE * statisticsFile;
+static FILE * outputFile;
 static IntermediateData * intermediateData;
 
 static void closeFile(void * file)
@@ -101,6 +107,11 @@ static void cleanup()
 	if(baseFileNames != NULL)
 	{
 		DynTab_destroy(baseFileNames, NULL);
+	}
+
+	if(outputFile != NULL)
+	{
+		fclose(outputFile);
 	}
 }
 
@@ -273,6 +284,17 @@ int main(int argc, char ** argv)
 		InformAboutInvalidArgumentAndExit('p');
 	}
 
+	if( outputFileName == NULL )
+	{
+		InformAboutRequiredArgumentAndExit('o');
+	}
+
+	outputFile = fopen(outputFileName, "w+");
+	if( outputFile == NULL )
+	{
+		CantOpenFileError(outputFile);
+	}
+
 	for( i = 0; i < baseFileNames->size; i++ )
 	{
 		FILE * file = fopen(baseFileNames->tab[i], "r");
@@ -325,9 +347,13 @@ int main(int argc, char ** argv)
 		intermediateData = IntermediateData_load(intermediateFile);
 	}
 
-	Statistics_generateStatistics(intermediateData, statisticsFile);
+	Generator_generate(intermediateData, outputFile, wordsValue, paragraphsValue);
+	
+	if( statisticsFile != NULL )
+	{
+		Statistics_generateStatistics(intermediateData, statisticsFile, outputFile);
+	}
 
-	Generator_generate(intermediateData, stdout, wordsValue, paragraphsValue);
 
 	return EXIT_SUCCESS;	
 }

@@ -134,7 +134,7 @@ void Generator_generate(IntermediateData * intermediateData, FILE * file, int wo
 				j--;
 			}
 		}
-		
+		fprintf(file, "\n\n");
 		entry = NULL;
 	}
 
