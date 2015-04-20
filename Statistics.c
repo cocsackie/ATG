@@ -66,7 +66,7 @@ static void createWordStatistics(IntermediateData * data, FILE * file)
 	int lastOccurences = -1;
 	qsort( data->dictionary->tab, data->dictionary->size, sizeof(void*),  compareWordOccurences);
 
-	fprintf(file, "Liczba niepowtarzalnych słów: %d\n", data->dictionary->size);
+	fprintf(file, "Liczba niepowtarzalnych słów: %d\n", (int)data->dictionary->size);
 	fprintf(file, "Najczęściej występujące wyrazy:\n");
 
 	for( i = 0; i < data->dictionary->size; i++ )
@@ -199,7 +199,7 @@ static void generateOutputStatistics(FILE * statisticsFile, FILE * outputFile)
 	int lastOccurences = -1;
 	qsort( words->tab, words->size, sizeof(void*),  compareWordOccurences);
 
-	fprintf(statisticsFile, "Liczba niepowtarzalnych słów: %d\n", words->size);
+	fprintf(statisticsFile, "Liczba niepowtarzalnych słów: %d\n", (int)words->size);
 	fprintf(statisticsFile, "Najczęściej występujące wyrazy:\n");
 	
 	allWordOccurences = 0;
