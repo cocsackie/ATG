@@ -181,12 +181,39 @@ void IntermediateData_save(IntermediateData * data, FILE * file)
 	Tree_traverse(data->gramTree, saveTraverseHandler);
 }
 
+static IntermediateData * data;
+static DynTab * treeEntriesSorted;
+
+static void createGramTreeInternal(int start, int end)
+{	
+
+	int middle = (start+end)/2;
+
+	Tree_insert(data->gramTree, treeEntriesSorted->tab[middle]);
+
+	if( start != middle )
+	{
+		createGramTreeInternal(start,middle-1);
+	}
+	if( end != middle )
+	{
+		createGramTreeInternal(middle+1, end);
+	}
+
+}
+
+static void createGramTree()
+{
+	createGramTreeInternal(0, treeEntriesSorted->size-1);
+}
+
 IntermediateData * IntermediateData_load(FILE * file)
 {
 	int i,j;
 	int wordCount;
 	int grams;
-	IntermediateData * data = IntermediateData_create();
+	data = IntermediateData_create();
+	treeEntriesSorted = DynTab_create();
 	char typePrefix[10];
 	int * prefix;
 	typePrefix[9] = '\0';
@@ -235,6 +262,8 @@ IntermediateData * IntermediateData_load(FILE * file)
 
 	fread(&grams, sizeof(grams), 1, file);
 
+	DynTab_resize(treeEntriesSorted, grams);
+
 	for( i = 0; i < grams; i++ )
 	{
 		GramTreeEntry * entry;
@@ -252,8 +281,12 @@ IntermediateData * IntermediateData_load(FILE * file)
 			fread(suffix, sizeof(*suffix), 1, file);
 			DynTab_add(entry->suffixes, suffix); 
 		}
-		Tree_insert(data->gramTree, entry);
+		DynTab_add(treeEntriesSorted, entry);
 	}
 
+	createGramTree();
+
+	free(prefix);
+	DynTab_destroy(treeEntriesSorted, NULL);
 	return data;
 }

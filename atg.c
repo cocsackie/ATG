@@ -329,26 +329,5 @@ int main(int argc, char ** argv)
 
 	Generator_generate(intermediateData, stdout, wordsValue, paragraphsValue);
 
-	
-	
-	#ifndef NDEBUG
-	printf("Pliki bazowe:\n");
-	{
-		int i;
-		for( i = 0; i < baseFileNames->size; i++ )
-		{
-			printf("- %s\n", (char *)baseFileNames->tab[i]);	
-		}	 
-	}
-
-	printf("intermediateFileName: %s\n", intermediateFileName);
-	printf("outputFileName: %s\n", outputFileName);
-	printf("statisticsFileName: %s\n", statisticsFileName);
-	printf("words: %d\n", wordsValue);
-	printf("paragraphs: %d\n", paragraphsValue);
-	printf("gramType: %d\n", gramTypeValue);	
-	
-	#endif
-
 	return EXIT_SUCCESS;	
 }
